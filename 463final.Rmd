@@ -1,5 +1,5 @@
 ---
-title: "Final Project - Biodiversity in the Great Barrier Reef"
+title: "Biodiversity in the Great Barrier Reef - Final Project"
 author: "Gabriela Cuevas & Max Baumstark"
 date: "2025-11-10"
 output: html_document
@@ -10,12 +10,18 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-In this report, we will investigate how environmental factors such as ocean temperature, pH level, bleaching level, latitude, and longitude impact marine biodiversity. Our data is assembled from various climate organization research (NOAA, GODAP, OBIS) assembled for the purpose of finding climate trends and creating future predictions. We will perform model diagnostics and multiple regression to determine which factors are most significant.
+In this report, we will investigate how environmental factors such as ocean temperature, pH level, bleaching level, latitude, and longitude impact marine biodiversity in the Great Barrier Reef. For the purposes of this report, we will use the abbreviation "GBR" for the Great Barrier Reef. Our data is assembled from various climate organization research (NOAA, GODAP, OBIS) assembled for the purpose of finding climate trends and creating future predictions. We will perform model diagnostics and multiple regression to determine which factors are most significant.
+
+## Research Question
+### How do temperature, ph level, coral bleaching level, latitude, and longitude affect marine biodiversity (number of species in a sampling region)?
 
 # Data
 
+Data Set: "Shifting Seas: Ocean Climate & Marine Life Dataset
+A Multi-Year Global Dataset of Sea Surface Temperature, pH Levels, and Corals." Sourced from Kaggle. https://www.kaggle.com/datasets/atharvasoundankar/shifting-seas-ocean-climate-and-marine-life-dataset?resource=download 
+
 ### Data Cleaning and Filtering
-```{r, warning=FALSE, message=FALSE}
+```{r, warning=FALSE, message=FALSE, echo = FALSE}
 rm(list = ls())
 
 library(readxl)
@@ -45,7 +51,7 @@ Also, we are going to rename the SST column to temperature, eliminate the marine
 
 We also want to mention that latitude and longitude are constrained to the general region of the GBR, so they are discrete variables.
 
-```{r}
+```{r, echo = FALSE}
 clean_dat <- dat %>%
   select (-Marine.Heatwave) %>%  
    rename(
@@ -95,33 +101,76 @@ summary(lm_ocean_full)
 
 Our initial summary indicates that temperature is the only significant predictor (as it is the only predictor value below any reasonable significance level). The other predictor that has a relatively low p-value is longitude, but we will take a closer look into the significant predictors in the future.
 
-Multiple R-Squared: 0.4895
+###### Multiple R-Squared: 0.4895
 
-Adjusted R-Squared: 0.0443
+###### Adjusted R-Squared: 0.0443
+
+
+
+## Full Model
+We consider the following regression model: 
+
+\[
+\text{Species}_i
+ = \beta_0
+ + \beta_1 \text{temperature}_i
+ + \beta_2 \text{longitude}_i
+ + \beta_3 \text{latitude}_i
+ + \beta_4 \text{pH}_i
+ + \beta_5 \text{highBleach}_i
+ + \beta_6 \text{mediumBleach}_i
+ + \beta_7 \text{lowBleach}_i
+ + \epsilon_i
+\]
+
+
+Where:
+
+- \( \text{Species}_i \) = the response variable (number of species) for site \(i\)
+- \( X_{1i}, X_{2i}, \ldots, X_{7i} \) = predictor variables for site \(i\), where:
+    - \(X_{1i}\): temperature  
+    - \(X_{2i}\): longitude  
+    - \(X_{3i}\): latitude  
+    - \(X_{4i}\): \text{pH}  
+    - \(X_{5i}\): highBleach indicator  
+    - \(X_{6i}\): mediumBleach indicator  
+    - \(X_{7i}\): lowBleach indicator  
+- \( \epsilon_i \) = random error term with \(E[\epsilon_i] = 0\) and \(\text{Var}(\epsilon_i)=\sigma^2\)
+
+
+#### Error term assumptions:
+\[
+\epsilon_i \overset{\text{iid}}{\sim} N(0, \sigma^2),
+\]
+
+- **Independence**: the \(\epsilon_i\) are independent across observations  
+- **Mean zero**: \(E[\epsilon_i] = 0\)  
+- **Constant variance** (homoscedasticity): \(\text{Var}(\epsilon_i) = \sigma^2\) for all \(i\)  
+- **Normality**: \(\epsilon_i\) are normally distributed
+
 
 ### *Full Model Coefficients:*
+##### Intercept = -5570.5744
+- The intercept coefficient is not meaningful. There is no case in which there will be a negative number of species in the the GBR.
 
-Intercept = -5570.5744
+##### Temperature = -9.7432 
+- For each 1°C increase in sea temperature, the expected number of species decreases by about 9.7, holding all other predictors constant.
 
-Temperature = -9.7432
+##### pH = -10.1908
+- For each 1 unit increase in pH, the expected number of species decreases by about 9.7, holding all other predictors constant. However, this predictor is not statistically significant.
 
-pH = -10.1908
+##### Latitude = 16.3202
+- Moving 1° north is associated with about 16 more species, but this effect is not statistically significant.
 
-Latitude = 16.3202
+##### Longitude = 43.0045
+- A 1° eastward change is associated with 43 additional species
 
-Longitude = 43.0045
-
-highBleach = 0.2286
-
-mediumBleach = -2.6331
-
-lowBleach = -2.0113
+##### Bleaching (all coefficients < |3| and p > 0.5)
+- Compared to sites with no observed bleaching, none of the bleaching levels show a meaningful difference in species count. High bleaching shows essentially no change in species richness, while medium and low bleaching are associated with 2–3 fewer species, but none of these effects are statistically significant. Overall, bleaching level does not appear to be a strong predictor of species richness in this model. 
 
 ## *Observations:*
 
 The R-Squared values suggest that there is a moderate correlation between the predictors and and the number of species in the GBR. There is also a difference of about 0.045 between the R-Squared and the Adjusted R-Squared, suggesting a strong penalty induced by including so many predictors.
-
-The intercept coefficient is not meaningful. There is no case in which there will be a negative number of species in the the GBR.
 
 Next, let's make sure no model assumptions are being violated, and make any transformations if needed.
 
@@ -129,7 +178,7 @@ Next, let's make sure no model assumptions are being violated, and make any tran
 
 First, we are going to make a visual representation of the predicted vs. observed values.
 
-```{r}
+```{r, echo = FALSE}
 GBR_dat$fit_full <- fitted(lm_ocean_full)
 
 p1 <- ggplot(GBR_dat, aes(x = species, y = fit_full)) +
@@ -265,15 +314,16 @@ summary(lm_ocean_full)
 summary(lm_ocean_filtered)
 ```
 
-When the influential points are removed from the model, longitude is much more significant. This suggests that the further south one travels down the GBR, the greater the number of species will be.
+When the influential points are removed from the model, longitude is much more significant. This suggests that the further east one travels across the GBR, the greater the number of species will be.
 
 Also, the predictors explain much more of the data as the Adjusted R-Squared bumps up from 0.44 to 0.55. This is a significant increase in the performance of the model.
 
-One my wonder, if the model fits better, why would we not simply remove the data points?
+One may wonder, if the model fits better, why would we not simply remove the data points?
 
 In regression, we want to avoid 'choosing' what data to include in models as much as possible, otherwise we are not providing a true representative of the population we are trying to model. Observations should only be removed if they are extreme, and we have determined that these observations are not extreme.
 
-```{r}
+##### Coefficients of the Full Model and Filtered Model
+```{r, echo = FALSE}
 coef_full <- coef(lm_ocean_full)
 coef_filtered <- coef(lm_ocean_filtered)
 comparison <- data.frame(Full_Model = coef_full, Filtered_Model = coef_filtered)
@@ -314,20 +364,33 @@ avPlots(sqrt_ocean)
 
 The added variable plots are almost identical between the two models, so any conclusions can be shared between both models.
 
-From these added variable plots, we can see that the only predictor besides temperature that has a notable relationship with the number of species is longitude. In that plot, there is a slight positive correlation between number of species and longitude. This tells us that there is higher biodiversity in the northern parts of the Great Barrier Reef. This graph also highlights 62, 42, and 32 as outliers, which matches up with our cook's distance plot.
+From these added variable plots, we can see that the only predictor besides temperature that has a notable relationship with the number of species is longitude. In that plot, there is a slight positive correlation between number of species and longitude. This tells us that there is higher biodiversity in the eastern parts of the Great Barrier Reef. This graph also highlights 62, 42, and 32 as outliers, which matches up with our cook's distance plot.
 
-```{r}
-bptest(lm_ocean_full)
-bptest(sqrt_ocean)
+```{r, echo=FALSE}
+bp_full  <- bptest(lm_ocean_full)
+bp_sqrt  <- bptest(sqrt_ocean)
 
-shapiro.test(residuals(lm_ocean_full))
-shapiro.test(residuals(sqrt_ocean))
+sw_full <- shapiro.test(residuals(lm_ocean_full))
+sw_sqrt <- shapiro.test(residuals(sqrt_ocean))
 
-ad.test(lm_ocean_full$residuals)
-ad.test(sqrt_ocean$residuals)
+ad_full <- ad.test(lm_ocean_full$residuals)
+ad_sqrt <- ad.test(sqrt_ocean$residuals)
 
-vif(lm_ocean_full)
-vif(sqrt_ocean)
+vif_full  <- vif(lm_ocean_full)
+vif_sqrt  <- vif(sqrt_ocean)
+
+diagnostics_table <- data.frame(
+  Model = c("Full Model", "Square Root Model"),
+  
+  bp_p_value = c(bp_full$p.value, bp_sqrt$p.value),
+  
+  sw_p_value = c(sw_full$p.value, sw_sqrt$p.value),
+  
+  ad_p_value = c(ad_full$p.value, ad_sqrt$p.value),
+  
+  max_vif = c(max(vif_full), max(vif_sqrt))
+)
+diagnostics_table
 ```
 
 All of the test results from the Breusch-Pagan test, Shapiro-Wilk test, Anderson-Darling test, and vif values do not vary enough between models to designate one over another.
@@ -353,7 +416,7 @@ The diagnostic plots look almost identical, so these can not be used to distingu
 ### Compare AIC and Adjusted R²
 
 One more thing that that can be checked when it comes to comparing the original model compared to the transformed model is the AIC and BIC values of the
-```{r}
+```{r, echo=FALSE}
 data.frame(
 Model = c("sqrt", "Full"),
 Adj_R2 = c(summary(sqrt_ocean)$adj.r.squared, summary(lm_ocean_full)$adj.r.squared),
@@ -369,7 +432,7 @@ The AIC and BIC values are the biggest indicator as there is a greater than 3x i
 For these reasons, we can move forward with the conclusion that the transformed model fits our data better than the original model.
 
 ### Model Selection
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results="hide"}
 # Null model (only intercept)
 null_model <- lm(species ~ 1, data = GBR_dat)
 
@@ -390,28 +453,90 @@ stepwise_model <- step(null_model,
 summary(stepwise_model)
 ```
 
+### Stepwise Results for Transformed Model
+```{r, echo =FALSE}
+stepwiseSummary <- data.frame(
+  Model = c("Forward", "Backward", "Stepwise"),
+  Adj_R2 = c(
+    summary(forward_model)$adj.r.squared,
+    summary(backward_model)$adj.r.squared,
+    summary(stepwise_model)$adj.r.squared
+  ),
+  AIC = c(
+    AIC(forward_model),
+    AIC(backward_model),
+    AIC(stepwise_model)
+  ),
+  BIC = c(
+    BIC(forward_model),
+    BIC(backward_model),
+    BIC(stepwise_model)
+  )
+)
+
+stepwiseSummary
+```
 All three selection methods choose a method with two predictors:
 
 ***Temperature & Longitude***
 
 However, the summary of this model indicates longitude is not a significant predictor. Therefore, further exploration is needed to determine whether the best model includes longitude or not.
 
-```{r}
+
+### More Candidate Models
+
+\[
+\sqrt{\text{species}_i}
+= \beta_0
++ \beta_1 \, \text{temperature}_i
++ \beta_2 \, \text{longitude}_i
++ \epsilon_i
+\]
+
+\[
+\sqrt{\text{species}_i}
+= \beta_0
++ \beta_1 \, \text{temperature}_i
++ \epsilon_i
+\]
+
+
+Where:
+
+- \(\sqrt{\text{species}}\) = the response variable (square root of the number of species) for site \(i\)
+- \( X_{1i}, X_{2i}, \ldots, X_{7i} \) = predictor variables for site \(i\), where:
+    - \(X_{1i}\): temperature  
+    - \(X_{2i}\): longitude  
+- \( \epsilon_i \) = random error term with \(E[\epsilon_i] = 0\) and \(\text{Var}(\epsilon_i)=\sigma^2\)
+
+
+
+```{r, echo=FALSE}
 lm_ocean_sqrt_reduced <- lm(sqrt(species) ~ temperature + Longitude, data = GBR_dat)
 lm_ocean_sqrt_temp <- lm(sqrt(species) ~ temperature, data = GBR_dat)
-
-summary(lm_ocean_sqrt_reduced)
-summary(lm_ocean_sqrt_temp)
-
-AIC(lm_ocean_sqrt_reduced)
-AIC(lm_ocean_sqrt_temp)
-
-BIC(lm_ocean_sqrt_reduced)
-BIC(lm_ocean_sqrt_temp)
-
 ```
 
-Model Statistic Comparisions:
+```{r, echo=FALSE}
+sqrt_model_table <- data.frame(
+  Model = c("Temperature + Longitude", "Temperature Only"),
+  Adj_R2 = c(
+    summary(lm_ocean_sqrt_reduced)$adj.r.squared,
+    summary(lm_ocean_sqrt_temp)$adj.r.squared
+  ),
+  AIC = c(
+    AIC(lm_ocean_sqrt_reduced),
+    AIC(lm_ocean_sqrt_temp)
+  ),
+  BIC = c(
+    BIC(lm_ocean_sqrt_reduced),
+    BIC(lm_ocean_sqrt_temp)
+  )
+)
+
+sqrt_model_table
+```
+
+### Model Statistic Comparisions:
 
 The adjusted r-squared values are almost identical between the two models (0.4844 and 0.4733) suggesting that the simpler model is the one we should go with.
 
@@ -420,7 +545,7 @@ The F-statistic for the simpler model is almost 2x greater than the F-statistic 
 There is not a difference in AIC or BIC greater than two between the models, meaning that AIC and BIC both suggest going with the simpler model.
 
 ### Partial F-Test
-```{r}
+```{r, echo=FALSE}
 anova(lm_ocean_sqrt_reduced, lm_ocean_sqrt_temp)
 ```
 
@@ -435,15 +560,22 @@ So, our final model is made up of only one predictor with a square-root transfor
 # Results
 
 ### Interpretation of the summary output
+#### Final Model
+\[
+\sqrt{\text{species}_i}
+= \beta_0
++ \beta_1 \, \text{temperature}_i
++ \epsilon_i
+\]
 
-```{r}
+```{r, echo = FALSE}
 final_model <- lm(sqrt(species) ~ temperature, data = GBR_dat)
 summary(final_model)
 ```
 
-Intercept: 23.73932 - When the temperature is 0 degrees Celsius, the expected biodiversity of a region is 395.419. This intercept by itself does not mean anything because it is outside the scope of our data. The range of temperature values we observed in our data set was from 26.2 to 32.34. Also the range of biodiversity is from 75 to 162.
+Intercept: 23.73932 - The intercept represents the expected value of \(\sqrt{\text{Species}}\) when temperature = 0°C. Because 0°C is far outside the observed temperature range (26–32°C), this value is not meaningful in context.
 
-temperature: -0.44636 - For each increase in the square root of the temperature (degrees celsius), the expected biodiversity will decrease by -0.44636.
+temperature: -0.44636 - For each 1°C increase in temperature, the **square root** of the expected species count decreases by 0.446 units.
 
 R-Squared: 0.4794 - about 48% of the variation in our data can be described by the temperature (degrees celsius) at that location.
 
@@ -452,7 +584,7 @@ F-Statistic: 78.29 & p-value: 1.097e-13 - These values are significant, meaning 
 ### Further Insights
 
 ## Plot Temp against Number of Species
-```{r}
+```{r, echo = FALSE}
 temp <- ggplot(GBR_dat, aes(x = temperature, y = species)) +
   geom_point(size = 3) +  # dots
   geom_smooth(method = "lm", se = FALSE, color = "red") +  # linear regression line
@@ -474,7 +606,7 @@ temp
  - Our model predicts that at 41.2 degrees celsius, there will be zero biodiversity. This makes sense as the larges observed value of temperature was 32.34 degrees and the lowest observed biodiversity observed was 75, not very close to 0.
 
 ### Cross - Validation
-```{r}
+```{r, echo =FALSE}
 train_control <- trainControl(
   method = "cv",
   number = 5,
@@ -500,7 +632,7 @@ MAE: 11.31606 - This value echoes the same conclusion from RMSE, that our model 
 
 # Discussion and Story
 
-From our study, a simple linear regression model with temperature and longitude would represent our data in the same way as our full model. Temperature was the only significant predictor of marine biodiversity. Sea surface temperature increases as a result of greenhouse gases such as carbon dioxide and methane in the atmosphere. We can use studies like these to predict how climate mitigation can slow down biodiversity loss. Current research has determined that if we are able to keep global temperatures below 2 degrees Celsius until 2100, we can slow dramatic oceanic environmental changes enough for coral reefs to recover and maintain their biodiversity levels. Global temperatures have increased by about 1 degree C in the past 20 years, and our current global temperature is 1.33 degrees C above pre-industrial temperatures. This means we must take significant measures to slow global temperature increase through reducing carbon emissions, fossil fuel usage, and preventing deforestation. In future studies, we would like to take a closer look at longitude to see if trends in species distribution differ more drastically in regions closer to or further from the equator.
+From our study, a simple linear regression model with temperature and longitude would represent our data in the same way as our full model. Temperature was the only significant predictor of marine biodiversity. Sea surface temperature increases as a result of greenhouse gases such as carbon dioxide and methane in the atmosphere. We can use studies like these to predict how climate mitigation can slow down biodiversity loss. Current research has determined that if we are able to keep global temperatures below 2 degrees Celsius until 2100, we can slow dramatic oceanic environmental changes enough for coral reefs to recover and maintain their biodiversity levels. Global temperatures have increased by about 1 degree C in the past 20 years, and our current global temperature is 1.33 degrees C above pre-industrial temperatures. This means we must take significant measures to slow global temperature increase through reducing carbon emissions, fossil fuel usage, and preventing deforestation. In future studies, we would like to take a closer look at longitude to see if trends in species distribution differ more drastically in regions closer to or further from the Prime Meridian.
 
 
 ## Sources
